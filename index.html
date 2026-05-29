@@ -1,174 +1,766 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Hogamble — Neon Gambling Simulator</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
-  </head>
-  <body>
-    <div id="loading" class="loading-screen">
-      <div class="loader">
-        <div class="dot"></div>
-        <div class="dot"></div>
-        <div class="dot"></div>
-      </div>
-      <div class="loading-text">HOGAMBLE</div>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+<title>HOGAMBLE</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Inter',sans-serif;
+}
+
+body{
+    background:#070b14;
+    overflow:hidden;
+    color:white;
+}
+
+/* BACKGROUND */
+
+.bg{
+    position:fixed;
+    inset:0;
+    background:
+    radial-gradient(circle at top left,#12203d 0%,transparent 30%),
+    radial-gradient(circle at bottom right,#1d1240 0%,transparent 30%),
+    linear-gradient(160deg,#05070d,#0a1120,#05070d);
+    z-index:-3;
+}
+
+.grid{
+    position:fixed;
+    inset:0;
+    background-image:
+    linear-gradient(rgba(255,255,255,0.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,0.03) 1px,transparent 1px);
+    background-size:40px 40px;
+    animation:gridMove 15s linear infinite;
+    z-index:-2;
+}
+
+@keyframes gridMove{
+    from{
+        transform:translateY(0px);
+    }
+    to{
+        transform:translateY(40px);
+    }
+}
+
+.glow{
+    position:fixed;
+    width:500px;
+    height:500px;
+    border-radius:50%;
+    filter:blur(120px);
+    opacity:.25;
+    animation:float 8s ease-in-out infinite;
+}
+
+.glow1{
+    background:#00aaff;
+    top:-150px;
+    left:-150px;
+}
+
+.glow2{
+    background:#7b2fff;
+    bottom:-150px;
+    right:-150px;
+}
+
+@keyframes float{
+    0%,100%{
+        transform:translateY(0px);
+    }
+    50%{
+        transform:translateY(30px);
+    }
+}
+
+/* LOADING */
+
+.loader{
+    position:fixed;
+    inset:0;
+    background:#05070d;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    z-index:9999;
+    transition:1s;
+}
+
+.loader h1{
+    font-size:60px;
+    letter-spacing:4px;
+    font-weight:800;
+    background:linear-gradient(90deg,#00d0ff,#7b2fff);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+}
+
+.loader p{
+    margin-top:10px;
+    opacity:.7;
+}
+
+.bar{
+    width:300px;
+    height:6px;
+    border-radius:100px;
+    background:#111827;
+    margin-top:25px;
+    overflow:hidden;
+}
+
+.bar span{
+    display:block;
+    height:100%;
+    width:0%;
+    background:linear-gradient(90deg,#00d0ff,#7b2fff);
+    animation:loadBar 3s forwards;
+}
+
+@keyframes loadBar{
+    to{
+        width:100%;
+    }
+}
+
+/* APP */
+
+.app{
+    display:flex;
+    height:100vh;
+}
+
+/* SIDEBAR */
+
+.sidebar{
+    width:260px;
+    background:rgba(255,255,255,0.05);
+    border-right:1px solid rgba(255,255,255,0.08);
+    backdrop-filter:blur(18px);
+    padding:20px;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+}
+
+.logo{
+    font-size:34px;
+    font-weight:800;
+    background:linear-gradient(90deg,#00d0ff,#7b2fff);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    margin-bottom:30px;
+}
+
+.menu{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+}
+
+.menu button{
+    border:none;
+    background:rgba(255,255,255,0.05);
+    color:white;
+    padding:15px;
+    border-radius:16px;
+    text-align:left;
+    cursor:pointer;
+    transition:.25s;
+    font-size:15px;
+    font-weight:600;
+}
+
+.menu button:hover{
+    transform:translateX(6px);
+    background:linear-gradient(90deg,#00aaff55,#7b2fff55);
+    box-shadow:0 0 20px rgba(0,170,255,.3);
+}
+
+.profile{
+    background:rgba(255,255,255,0.05);
+    border-radius:20px;
+    padding:16px;
+}
+
+.profile-top{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.avatar{
+    width:50px;
+    height:50px;
+    border-radius:50%;
+    background:linear-gradient(135deg,#00d0ff,#7b2fff);
+}
+
+.profile h3{
+    font-size:16px;
+}
+
+.profile p{
+    font-size:13px;
+    opacity:.7;
+}
+
+/* MAIN */
+
+.main{
+    flex:1;
+    padding:30px;
+    overflow:auto;
+}
+
+.topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:25px;
+}
+
+.balance{
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.08);
+    padding:16px 24px;
+    border-radius:20px;
+    backdrop-filter:blur(14px);
+    box-shadow:0 0 25px rgba(0,0,0,.25);
+}
+
+.balance h2{
+    font-size:30px;
+}
+
+.balance span{
+    color:#5dff8b;
+}
+
+.online{
+    display:flex;
+    gap:12px;
+}
+
+.online-box{
+    background:rgba(255,255,255,0.06);
+    border-radius:16px;
+    padding:14px 18px;
+    border:1px solid rgba(255,255,255,0.08);
+}
+
+/* HERO */
+
+.hero{
+    background:linear-gradient(135deg,#00aaff22,#7b2fff22);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:30px;
+    padding:40px;
+    position:relative;
+    overflow:hidden;
+    margin-bottom:25px;
+    animation:fadeUp .8s ease;
+}
+
+.hero::before{
+    content:'';
+    position:absolute;
+    width:300px;
+    height:300px;
+    background:#00aaff;
+    filter:blur(140px);
+    opacity:.15;
+    right:-100px;
+    top:-100px;
+}
+
+.hero h1{
+    font-size:54px;
+    margin-bottom:10px;
+}
+
+.hero p{
+    opacity:.75;
+    max-width:700px;
+    line-height:1.6;
+}
+
+.play-btn{
+    margin-top:25px;
+    border:none;
+    padding:16px 30px;
+    border-radius:16px;
+    background:linear-gradient(90deg,#00d0ff,#7b2fff);
+    color:white;
+    font-size:16px;
+    font-weight:700;
+    cursor:pointer;
+    transition:.25s;
+}
+
+.play-btn:hover{
+    transform:scale(1.05);
+    box-shadow:0 0 30px rgba(0,170,255,.5);
+}
+
+/* GAMES */
+
+.section-title{
+    font-size:28px;
+    margin-bottom:20px;
+}
+
+.games{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+    gap:20px;
+}
+
+.card{
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:24px;
+    padding:24px;
+    transition:.25s;
+    cursor:pointer;
+    position:relative;
+    overflow:hidden;
+    animation:fadeUp .8s ease;
+}
+
+.card:hover{
+    transform:translateY(-8px);
+    box-shadow:0 0 35px rgba(0,170,255,.25);
+}
+
+.card::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    background:linear-gradient(135deg,#00aaff11,#7b2fff11);
+}
+
+.card h2{
+    font-size:24px;
+    margin-bottom:10px;
+}
+
+.card p{
+    opacity:.7;
+    line-height:1.5;
+    margin-bottom:20px;
+}
+
+.card button{
+    border:none;
+    padding:12px 18px;
+    border-radius:12px;
+    background:linear-gradient(90deg,#00d0ff,#7b2fff);
+    color:white;
+    cursor:pointer;
+    font-weight:700;
+}
+
+/* FEED */
+
+.feed{
+    margin-top:30px;
+    background:rgba(255,255,255,0.05);
+    border-radius:24px;
+    padding:20px;
+    border:1px solid rgba(255,255,255,0.08);
+}
+
+.feed h3{
+    margin-bottom:15px;
+}
+
+.feed-item{
+    padding:12px;
+    border-radius:12px;
+    background:rgba(255,255,255,0.04);
+    margin-bottom:10px;
+    animation:fadeUp .4s ease;
+}
+
+.win{
+    color:#5dff8b;
+}
+
+.loss{
+    color:#ff5d7a;
+}
+
+@keyframes fadeUp{
+    from{
+        opacity:0;
+        transform:translateY(20px);
+    }
+    to{
+        opacity:1;
+        transform:translateY(0px);
+    }
+}
+
+::-webkit-scrollbar{
+    width:8px;
+}
+
+::-webkit-scrollbar-thumb{
+    background:#1b2b45;
+    border-radius:100px;
+}
+
+/* MOBILE */
+
+@media(max-width:900px){
+
+    .sidebar{
+        display:none;
+    }
+
+    .main{
+        padding:18px;
+    }
+
+    .hero h1{
+        font-size:38px;
+    }
+
+    .topbar{
+        flex-direction:column;
+        gap:15px;
+        align-items:flex-start;
+    }
+
+}
+</style>
+</head>
+
+<body>
+
+<div class="loader" id="loader">
+    <h1>HOGAMBLE</h1>
+    <p>Loading servers...</p>
+
+    <div class="bar">
+        <span></span>
     </div>
+</div>
 
-    <div id="app" class="app hidden">
-      <aside class="sidebar">
-        <div class="brand">HOGAMBLE</div>
-        <nav>
-          <button data-tab="home" class="active">Home</button>
-          <button data-tab="gamble">Gamble</button>
-          <button data-tab="crates">Crates</button>
-          <button data-tab="upgrades">Upgrades</button>
-          <button data-tab="inventory">Inventory</button>
-          <button data-tab="leaderboards">Leaderboards</button>
-          <button data-tab="profile">Profile</button>
-          <button data-tab="settings">Settings</button>
-          <button data-tab="stats">Stats</button>
-        </nav>
-        <div class="footer">
-          <div class="balance">
-            <div class="label">Balance</div>
-            <div id="balance" class="money">$0</div>
-          </div>
-          <div class="mini-stats">
-            <div id="levelBadge" class="badge">Bronze</div>
-          </div>
+<div class="bg"></div>
+<div class="grid"></div>
+<div class="glow glow1"></div>
+<div class="glow glow2"></div>
+
+<div class="app">
+
+    <aside class="sidebar">
+
+        <div>
+
+            <div class="logo">HOGAMBLE</div>
+
+            <div class="menu">
+                <button>🏠 Dashboard</button>
+                <button>🎲 Coinflip</button>
+                <button>📦 Cases</button>
+                <button>🚀 Crash</button>
+                <button>🏆 Leaderboards</button>
+                <button>🎒 Inventory</button>
+                <button>⚡ Upgrades</button>
+                <button>👤 Profile</button>
+                <button>⚙️ Settings</button>
+            </div>
+
         </div>
-      </aside>
 
-      <main class="main">
-        <header class="topbar">
-          <div class="left">
-            <div id="animatedCounter" class="animated-counter">$500,000</div>
-            <div id="xpBar" class="xp-bar"><div id="xpFill" class="xp-fill" style="width:0%"></div></div>
-          </div>
-          <div class="right">
-            <div id="fakeOnline" class="fake-online">Online: 12,403</div>
-            <div id="liveFeed" class="live-feed">Live feed: ...</div>
-          </div>
-        </header>
+        <div class="profile">
 
-        <section id="tabContent" class="content">
-          <!-- Home -->
-          <div id="home" class="tab active">
-            <div class="cards">
-              <div class="card glass neon">
-                <h3>Daily Reward</h3>
-                <div id="dailyReward" class="big">Claim</div>
-              </div>
-              <div class="card glass neon">
-                <h3>Quick Gamble</h3>
-                <button id="quickCoinflip">Coinflip $5,000</button>
-                <button id="quickCrash">Crash x2</button>
-              </div>
-              <div class="card glass neon feed">
-                <h3>Live Wins</h3>
-                <ul id="feedList"></ul>
-              </div>
-            </div>
-          </div>
+            <div class="profile-top">
+                <div class="avatar"></div>
 
-          <!-- Gamble -->
-          <div id="gamble" class="tab">
-            <div class="game-grid">
-              <div class="panel glass">
-                <h3>Coinflip</h3>
-                <div class="coinflip">
-                  <input id="cfBet" type="number" value="5000" min="100" step="100">
-                  <button id="cfHeads">Heads</button>
-                  <button id="cfTails">Tails</button>
+                <div>
+                    <h3>Player001</h3>
+                    <p>Diamond Rank</p>
                 </div>
-              </div>
-              <div class="panel glass">
-                <h3>Crash</h3>
-                <div id="crashArea">
-                  <div id="crashMultiplier" class="mult">x1.00</div>
-                  <input id="crashBet" type="number" value="1000" min="100" step="100">
-                  <button id="crashBetBtn">Bet</button>
-                  <button id="cashOutBtn" disabled>Cash Out</button>
+            </div>
+
+        </div>
+
+    </aside>
+
+    <main class="main">
+
+        <div class="topbar">
+
+            <div class="balance">
+                <p>Balance</p>
+                <h2><span>$</span><span id="money">500000</span></h2>
+            </div>
+
+            <div class="online">
+
+                <div class="online-box">
+                    👥 Online: <strong id="players">1,284</strong>
                 </div>
-              </div>
-              <div class="panel glass">
-                <h3>Jackpot Wheel</h3>
-                <canvas id="wheel" width="300" height="300"></canvas>
-                <input id="wheelBet" type="number" value="10000" min="100" step="100">
-                <button id="spinWheel">Spin</button>
-              </div>
+
+                <div class="online-box">
+                    💬 Live Server
+                </div>
+
             </div>
-          </div>
 
-          <!-- Crates -->
-          <div id="crates" class="tab">
-            <div class="cards">
-              <div class="card glass">
-                <h3>Cases</h3>
-                <div id="casesList"></div>
-              </div>
-              <div class="card glass">
-                <h3>Inventory</h3>
-                <div id="caseInventory" class="inventory-grid"></div>
-              </div>
-            </div>
-          </div>
+        </div>
 
-          <!-- Upgrades -->
-          <div id="upgrades" class="tab">
-            <div id="upgradesList" class="upgrades-grid"></div>
-          </div>
+        <section class="hero">
 
-          <!-- Inventory -->
-          <div id="inventory" class="tab">
-            <div id="inventoryList" class="inventory-grid"></div>
-          </div>
+            <h1>PLAY. WIN. FLEX.</h1>
 
-          <!-- Leaderboards -->
-          <div id="leaderboards" class="tab">
-            <h2>Leaderboards</h2>
-            <ol id="leaderboardList"></ol>
-          </div>
+            <p>
+                Battle other players, open rare cases, level up your profile,
+                and become the richest player on HOGAMBLE.
+            </p>
 
-          <!-- Profile -->
-          <div id="profile" class="tab">
-            <h2>Profile</h2>
-            <label>Username <input id="usernameInput" placeholder="Player" /></label>
-            <label>Avatar <input id="avatarInput" type="file" accept="image/*" /></label>
-            <div id="avatarPreview" class="avatar-preview"></div>
-            <button id="saveProfile">Save</button>
-            <div class="redeem">
-              <h3>Redeem Code</h3>
-              <input id="redeemCode" placeholder="Enter code" /> <button id="redeemBtn">Redeem</button>
-            </div>
-          </div>
+            <button class="play-btn">
+                START PLAYING
+            </button>
 
-          <!-- Settings -->
-          <div id="settings" class="tab">
-            <h2>Settings</h2>
-            <label><input id="toggleMusic" type="checkbox" checked /> Music</label>
-            <label><input id="toggleSounds" type="checkbox" checked /> Sounds</label>
-            <button id="resetGame" class="danger">Reset Save</button>
-          </div>
-
-          <!-- Stats -->
-          <div id="stats" class="tab">
-            <h2>Statistics</h2>
-            <div id="statsList"></div>
-          </div>
         </section>
 
-        <div id="notifications" class="notifications"></div>
-      </main>
-    </div>
+        <h2 class="section-title">Popular Games</h2>
 
-    <script type="module" src="js/main.js"></script>
-  </body>
-  </html>
+        <section class="games">
+
+            <div class="card">
+                <h2>🎲 Coinflip</h2>
+
+                <p>
+                    Challenge players in real-time and double your balance.
+                </p>
+
+                <button onclick="launchGame('coinflip')">
+                    Play Now
+                </button>
+            </div>
+
+            <div class="card">
+                <h2>📦 Cases</h2>
+
+                <p>
+                    Open cases and unlock ultra rare rewards and cosmetics.
+                </p>
+
+                <button onclick="launchGame('cases')">
+                    Open Cases
+                </button>
+            </div>
+
+            <div class="card">
+                <h2>🚀 Crash</h2>
+
+                <p>
+                    Cash out before the multiplier crashes and lose everything.
+                </p>
+
+                <button onclick="launchGame('crash')">
+                    Join Crash
+                </button>
+            </div>
+
+            <div class="card">
+                <h2>🏆 Jackpot</h2>
+
+                <p>
+                    Enter the jackpot pool and compete for massive rewards.
+                </p>
+
+                <button onclick="launchGame('jackpot')">
+                    Enter Pool
+                </button>
+            </div>
+
+        </section>
+
+        <section class="feed">
+
+            <h3>🔥 Live Feed</h3>
+
+            <div id="feedContainer"></div>
+
+        </section>
+
+    </main>
+
+</div>
+
+<script>
+
+/* LOADER */
+
+window.onload = () => {
+
+    setTimeout(() => {
+        document.getElementById('loader').style.opacity = '0';
+
+        setTimeout(() => {
+            document.getElementById('loader').style.display = 'none';
+        },1000);
+
+    },3000);
+
+}
+
+/* SOCKET */
+
+let socket;
+
+try{
+
+    socket = io("http://localhost:3000");
+
+    socket.on("connect", () => {
+        console.log("Connected to backend");
+    });
+
+}catch(err){
+    console.log("Backend offline");
+}
+
+/* MONEY ANIMATION */
+
+let money = 500000;
+const moneyEl = document.getElementById('money');
+
+setInterval(() => {
+
+    money += Math.floor(Math.random() * 4000);
+
+    moneyEl.innerText =
+    money.toLocaleString();
+
+},2500);
+
+/* ONLINE PLAYERS */
+
+const playersEl =
+document.getElementById('players');
+
+setInterval(() => {
+
+    let amount =
+    1000 + Math.floor(Math.random() * 700);
+
+    playersEl.innerText =
+    amount.toLocaleString();
+
+},4000);
+
+/* LIVE FEED */
+
+const feedContainer =
+document.getElementById('feedContainer');
+
+const names = [
+    "Shadow",
+    "Vortex",
+    "Lunar",
+    "Ace",
+    "Nova",
+    "Ghost",
+    "Titan",
+    "Echo",
+    "Rapid",
+    "Blaze"
+];
+
+const games = [
+    "Coinflip",
+    "Crash",
+    "Cases",
+    "Jackpot"
+];
+
+function addFeed(){
+
+    const div =
+    document.createElement('div');
+
+    div.className =
+    'feed-item';
+
+    const name =
+    names[Math.floor(Math.random()*names.length)];
+
+    const game =
+    games[Math.floor(Math.random()*games.length)];
+
+    const won =
+    Math.random() > .4;
+
+    const amount =
+    Math.floor(Math.random()*100000);
+
+    div.innerHTML = `
+        <strong>${name}</strong>
+        ${won ? 'won' : 'lost'}
+        <span class="${won ? 'win' : 'loss'}">
+        $${amount.toLocaleString()}
+        </span>
+        on ${game}
+    `;
+
+    feedContainer.prepend(div);
+
+    if(feedContainer.children.length > 8){
+        feedContainer.removeChild(
+            feedContainer.lastChild
+        );
+    }
+
+}
+
+setInterval(addFeed,1800);
+
+for(let i=0;i<5;i++){
+    addFeed();
+}
+
+/* GAME LOADING */
+
+function launchGame(game){
+
+    const btn =
+    event.target;
+
+    btn.innerText = "Loading...";
+
+    setTimeout(() => {
+
+        window.location.href =
+        `games/${game}.html`;
+
+    },1000);
+
+}
+
+</script>
+
+</body>
+</html>
