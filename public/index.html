@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HOGAMBLE - Multiplayer Gambling Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/animations.css">
+    <link rel="stylesheet" href="/css/responsive.css">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loading-content">
+            <div class="loading-spinner">
+                <div class="spinner"></div>
+            </div>
+            <h1>HOGAMBLE</h1>
+            <p>Loading your fortune...</p>
+        </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div id="authModal" class="modal">
+        <div class="modal-content auth-modal">
+            <div class="auth-tabs">
+                <button class="auth-tab active" data-tab="login">Login</button>
+                <button class="auth-tab" data-tab="register">Register</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="loginForm" class="auth-form active">
+                <h2>Welcome Back</h2>
+                <input type="email" id="loginEmail" placeholder="Email" required>
+                <input type="password" id="loginPassword" placeholder="Password" required>
+                <button type="submit" class="btn btn-primary">Login</button>
+                <div id="loginError" class="error-message"></div>
+            </form>
+
+            <!-- Register Form -->
+            <form id="registerForm" class="auth-form">
+                <h2>Create Account</h2>
+                <input type="text" id="registerUsername" placeholder="Username" required>
+                <input type="email" id="registerEmail" placeholder="Email" required>
+                <input type="password" id="registerPassword" placeholder="Password" required>
+                <input type="password" id="registerConfirm" placeholder="Confirm Password" required>
+                <button type="submit" class="btn btn-primary">Register</button>
+                <div id="registerError" class="error-message"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app" class="app hidden">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="logo">HOGAMBLE</h1>
+                <button id="sidebarToggle" class="sidebar-toggle">☰</button>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" data-page="dashboard">
+                    <span class="icon">🏠</span>
+                    <span class="label">Dashboard</span>
+                </a>
+                <a href="#" class="nav-item" data-page="coinflip">
+                    <span class="icon">🪙</span>
+                    <span class="label">Coinflip</span>
+                </a>
+                <a href="#" class="nav-item" data-page="crash">
+                    <span class="icon">📉</span>
+                    <span class="label">Crash</span>
+                </a>
+                <a href="#" class="nav-item" data-page="jackpot">
+                    <span class="icon">🎡</span>
+                    <span class="label">Jackpot</span>
+                </a>
+                <a href="#" class="nav-item" data-page="cases">
+                    <span class="icon">📦</span>
+                    <span class="label">Cases</span>
+                </a>
+                <a href="#" class="nav-item" data-page="inventory">
+                    <span class="icon">🎒</span>
+                    <span class="label">Inventory</span>
+                </a>
+                <a href="#" class="nav-item" data-page="leaderboards">
+                    <span class="icon">🏆</span>
+                    <span class="label">Leaderboards</span>
+                </a>
+                <a href="#" class="nav-item" data-page="profile">
+                    <span class="icon">👤</span>
+                    <span class="label">Profile</span>
+                </a>
+                <a href="#" class="nav-item" data-page="settings">
+                    <span class="icon">⚙️</span>
+                    <span class="label">Settings</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-card">
+                    <img id="userAvatar" src="/assets/default-avatar.png" alt="Avatar" class="avatar-small">
+                    <div class="user-info">
+                        <p id="userName" class="user-name">Player</p>
+                        <p id="userLevel" class="user-level">Level 1</p>
+                    </div>
+                </div>
+                <div class="balance-box">
+                    <span class="balance-label">Balance</span>
+                    <span id="balanceDisplay" class="balance-amount">$500,000</span>
+                </div>
+                <button id="logoutBtn" class="btn btn-secondary">Logout</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <header class="topbar">
+                <div class="topbar-left">
+                    <h2 id="pageTitle" class="page-title">Dashboard</h2>
+                </div>
+                <div class="topbar-right">
+                    <div class="animated-counter-container">
+                        <span id="animatedBalance" class="animated-counter">$500,000</span>
+                    </div>
+                    <div class="xp-bar-container">
+                        <div class="xp-bar">
+                            <div id="xpFill" class="xp-fill" style="width: 0%"></div>
+                        </div>
+                        <span id="xpText" class="xp-text">0 XP</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Pages Container -->
+            <div class="pages-container">
+                <!-- Dashboard Page -->
+                <div id="dashboard" class="page active">
+                    <div class="dashboard-grid">
+                        <div class="card card-primary">
+                            <h3>Daily Reward</h3>
+                            <button id="claimDailyBtn" class="btn btn-large btn-success">Claim Reward</button>
+                            <p id="dailyStatus" class="daily-status">Ready to claim</p>
+                        </div>
+
+                        <div class="card card-secondary">
+                            <h3>Quick Stats</h3>
+                            <div class="stats-mini">
+                                <div class="stat-item">
+                                    <span class="stat-label">Wins</span>
+                                    <span id="quickWins" class="stat-value">0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Level</span>
+                                    <span id="quickLevel" class="stat-value">1</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Profit</span>
+                                    <span id="quickProfit" class="stat-value">$0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card card-tertiary">
+                            <h3>Recent Wins</h3>
+                            <ul id="recentWinsList" class="wins-list">
+                                <li>No recent wins</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Coinflip Page -->
+                <div id="coinflip" class="page">
+                    <div class="game-container">
+                        <div class="game-panel">
+                            <h2>Coinflip</h2>
+                            <div class="coinflip-area">
+                                <div id="coinDisplay" class="coin">🪙</div>
+                                <input type="number" id="coinBetAmount" class="bet-input" placeholder="Bet amount" value="1000" min="100" step="100">
+                                <div class="choice-buttons">
+                                    <button id="headsBtn" class="btn btn-choice">Heads</button>
+                                    <button id="tailsBtn" class="btn btn-choice">Tails</button>
+                                </div>
+                                <div id="coinResult" class="result-display"></div>
+                            </div>
+                        </div>
+
+                        <div class="game-panel">
+                            <h3>Multiplayer</h3>
+                            <div class="multiplayer-area">
+                                <input type="text" id="challengePlayerName" placeholder="Enter player name" class="player-search">
+                                <button id="sendChallengeBtn" class="btn btn-primary">Send Challenge</button>
+                                <div id="activeChallenges" class="challenges-list"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Crash Page -->
+                <div id="crash" class="page">
+                    <div class="game-container">
+                        <div class="crash-game-panel">
+                            <h2>Crash</h2>
+                            <canvas id="crashChart" width="800" height="300"></canvas>
+                            <div class="crash-controls">
+                                <input type="number" id="crashBetAmount" class="bet-input" placeholder="Bet amount" value="1000" min="100" step="100">
+                                <button id="crashBetBtn" class="btn btn-primary">Place Bet</button>
+                                <button id="crashCashoutBtn" class="btn btn-success" disabled>Cash Out</button>
+                                <div id="crashMultiplier" class="multiplier-display">x1.00</div>
+                            </div>
+                            <div id="crashResult" class="result-display"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Jackpot Page -->
+                <div id="jackpot" class="page">
+                    <div class="game-container">
+                        <div class="jackpot-panel">
+                            <h2>Jackpot Wheel</h2>
+                            <canvas id="wheelCanvas" width="400" height="400"></canvas>
+                            <input type="number" id="wheelBetAmount" class="bet-input" placeholder="Bet amount" value="5000" min="100" step="100">
+                            <button id="spinWheelBtn" class="btn btn-primary btn-large">SPIN</button>
+                            <div id="wheelResult" class="result-display"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cases Page -->
+                <div id="cases" class="page">
+                    <div class="cases-container">
+                        <div class="cases-list">
+                            <h3>Available Cases</h3>
+                            <div id="casesList" class="items-grid"></div>
+                        </div>
+                        <div class="case-inventory">
+                            <h3>My Cases</h3>
+                            <div id="myCasesList" class="items-grid"></div>
+                        </div>
+                    </div>
+                    <div id="caseOpenModal" class="modal hidden">
+                        <div class="modal-content case-content">
+                            <button class="close-btn">&times;</button>
+                            <h2>Opening Case...</h2>
+                            <div id="caseSpinner" class="case-spinner"></div>
+                            <div id="caseReward" class="case-reward hidden"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inventory Page -->
+                <div id="inventory" class="page">
+                    <div class="inventory-container">
+                        <div class="filters">
+                            <button class="filter-btn active" data-filter="all">All</button>
+                            <button class="filter-btn" data-filter="cosmetic">Cosmetics</button>
+                            <button class="filter-btn" data-filter="theme">Themes</button>
+                            <button class="filter-btn" data-filter="effect">Effects</button>
+                        </div>
+                        <div id="inventoryGrid" class="items-grid"></div>
+                    </div>
+                </div>
+
+                <!-- Leaderboards Page -->
+                <div id="leaderboards" class="page">
+                    <div class="leaderboards-container">
+                        <div class="leaderboard-tabs">
+                            <button class="leaderboard-tab active" data-type="profit">By Profit</button>
+                            <button class="leaderboard-tab" data-type="level">By Level</button>
+                            <button class="leaderboard-tab" data-type="wins">By Wins</button>
+                        </div>
+                        <div id="leaderboardContent" class="leaderboard-content">
+                            <table class="leaderboard-table">
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Player</th>
+                                        <th>Level</th>
+                                        <th id="leaderboardHeader">Profit</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="leaderboardBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Profile Page -->
+                <div id="profile" class="page">
+                    <div class="profile-container">
+                        <div class="profile-header">
+                            <img id="profileAvatar" src="/assets/default-avatar.png" alt="Profile" class="avatar-large">
+                            <div class="profile-info">
+                                <h2 id="profileName">Player Name</h2>
+                                <p id="profileRank" class="profile-rank">Bronze</p>
+                            </div>
+                        </div>
+
+                        <div class="profile-tabs">
+                            <button class="profile-tab active" data-tab="stats">Stats</button>
+                            <button class="profile-tab" data-tab="achievements">Achievements</button>
+                            <button class="profile-tab" data-tab="settings">Settings</button>
+                        </div>
+
+                        <!-- Stats Tab -->
+                        <div id="statsTab" class="profile-tab-content active">
+                            <div class="stats-grid">
+                                <div class="stat-card">
+                                    <h4>Total Games</h4>
+                                    <p id="statTotalGames" class="stat-number">0</p>
+                                </div>
+                                <div class="stat-card">
+                                    <h4>Wins</h4>
+                                    <p id="statWins" class="stat-number">0</p>
+                                </div>
+                                <div class="stat-card">
+                                    <h4>Win Rate</h4>
+                                    <p id="statWinRate" class="stat-number">0%</p>
+                                </div>
+                                <div class="stat-card">
+                                    <h4>Total Profit</h4>
+                                    <p id="statProfit" class="stat-number">$0</p>
+                                </div>
+                                <div class="stat-card">
+                                    <h4>Biggest Win</h4>
+                                    <p id="statBiggestWin" class="stat-number">$0</p>
+                                </div>
+                                <div class="stat-card">
+                                    <h4>Playtime</h4>
+                                    <p id="statPlaytime" class="stat-number">0m</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Achievements Tab -->
+                        <div id="achievementsTab" class="profile-tab-content">
+                            <div id="achievementsList" class="achievements-grid"></div>
+                        </div>
+
+                        <!-- Settings Tab -->
+                        <div id="settingsTab" class="profile-tab-content">
+                            <div class="settings-form">
+                                <label class="form-group">
+                                    <span>Username</span>
+                                    <input type="text" id="usernameInput" placeholder="Enter new username">
+                                </label>
+                                <label class="form-group">
+                                    <span>Avatar</span>
+                                    <input type="file" id="avatarInput" accept="image/*">
+                                </label>
+                                <label class="checkbox-group">
+                                    <input type="checkbox" id="musicToggle" checked>
+                                    <span>Background Music</span>
+                                </label>
+                                <label class="checkbox-group">
+                                    <input type="checkbox" id="soundsToggle" checked>
+                                    <span>Sound Effects</span>
+                                </label>
+                                <button id="saveSettingsBtn" class="btn btn-primary">Save Settings</button>
+                            </div>
+
+                            <div class="redeem-section">
+                                <h3>Redeem Code</h3>
+                                <div class="redeem-form">
+                                    <input type="text" id="redeemCodeInput" placeholder="Enter redeem code" style="text-transform: uppercase;">
+                                    <button id="redeemBtn" class="btn btn-success">Redeem</button>
+                                </div>
+                                <div id="redeemMessage"></div>
+                            </div>
+
+                            <button id="logoutBtn2" class="btn btn-danger">Logout</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Page -->
+                <div id="settings" class="page">
+                    <div class="settings-container">
+                        <h2>Settings</h2>
+                        <div class="settings-section">
+                            <h3>Audio</h3>
+                            <label class="checkbox-group">
+                                <input type="checkbox" id="musicToggle2" checked>
+                                <span>Background Music</span>
+                            </label>
+                            <label class="checkbox-group">
+                                <input type="checkbox" id="soundsToggle2" checked>
+                                <span>Sound Effects</span>
+                            </label>
+                        </div>
+
+                        <div class="settings-section">
+                            <h3>Appearance</h3>
+                            <label class="form-group">
+                                <span>Theme</span>
+                                <select id="themeSelect">
+                                    <option value="dark">Dark</option>
+                                    <option value="neon">Neon</option>
+                                    <option value="cyberpunk">Cyberpunk</option>
+                                </select>
+                            </label>
+                        </div>
+
+                        <div class="settings-section">
+                            <h3>Account</h3>
+                            <button id="resetDataBtn" class="btn btn-danger">Reset Account Data</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notifications Area -->
+            <div id="notifications" class="notifications-area"></div>
+        </main>
+    </div>
+
+    <!-- Tutorial Modal -->
+    <div id="tutorialModal" class="modal">
+        <div class="modal-content tutorial-content">
+            <button class="close-btn">&times;</button>
+            <h2>Welcome to HOGAMBLE!</h2>
+            <div class="tutorial-steps">
+                <div class="tutorial-step">
+                    <h3>🎮 How to Play</h3>
+                    <p>Start with $500,000 virtual cash. Play games to win big and climb the leaderboards!</p>
+                </div>
+                <div class="tutorial-step">
+                    <h3>💰 Games Available</h3>
+                    <p>Try Coinflip for 50/50 odds, Crash for multiplier betting, or spin the Jackpot Wheel.</p>
+                </div>
+                <div class="tutorial-step">
+                    <h3>⭐ Level Up</h3>
+                    <p>Earn XP from games to level up, unlock ranks, and earn daily rewards!</p>
+                </div>
+            </div>
+            <button id="closeTutorialBtn" class="btn btn-primary">Get Started</button>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/socket.js"></script>
+    <script src="/js/game.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/main.js"></script>
+</body>
+</html>

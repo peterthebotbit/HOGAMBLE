@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Hogamble — Neon Gambling Simulator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+  </head>
+  <body>
+    <div id="loading" class="loading-screen">
+      <div class="loader">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+      <div class="loading-text">HOGAMBLE</div>
+    </div>
+
+    <div id="app" class="app hidden">
+      <aside class="sidebar">
+        <div class="brand">HOGAMBLE</div>
+        <nav>
+          <button data-tab="home" class="active">Home</button>
+          <button data-tab="gamble">Gamble</button>
+          <button data-tab="crates">Crates</button>
+          <button data-tab="upgrades">Upgrades</button>
+          <button data-tab="inventory">Inventory</button>
+          <button data-tab="leaderboards">Leaderboards</button>
+          <button data-tab="profile">Profile</button>
+          <button data-tab="settings">Settings</button>
+          <button data-tab="stats">Stats</button>
+        </nav>
+        <div class="footer">
+          <div class="balance">
+            <div class="label">Balance</div>
+            <div id="balance" class="money">$0</div>
+          </div>
+          <div class="mini-stats">
+            <div id="levelBadge" class="badge">Bronze</div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div class="left">
+            <div id="animatedCounter" class="animated-counter">$500,000</div>
+            <div id="xpBar" class="xp-bar"><div id="xpFill" class="xp-fill" style="width:0%"></div></div>
+          </div>
+          <div class="right">
+            <div id="fakeOnline" class="fake-online">Online: 12,403</div>
+            <div id="liveFeed" class="live-feed">Live feed: ...</div>
+          </div>
+        </header>
+
+        <section id="tabContent" class="content">
+          <!-- Home -->
+          <div id="home" class="tab active">
+            <div class="cards">
+              <div class="card glass neon">
+                <h3>Daily Reward</h3>
+                <div id="dailyReward" class="big">Claim</div>
+              </div>
+              <div class="card glass neon">
+                <h3>Quick Gamble</h3>
+                <button id="quickCoinflip">Coinflip $5,000</button>
+                <button id="quickCrash">Crash x2</button>
+              </div>
+              <div class="card glass neon feed">
+                <h3>Live Wins</h3>
+                <ul id="feedList"></ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Gamble -->
+          <div id="gamble" class="tab">
+            <div class="game-grid">
+              <div class="panel glass">
+                <h3>Coinflip</h3>
+                <div class="coinflip">
+                  <input id="cfBet" type="number" value="5000" min="100" step="100">
+                  <button id="cfHeads">Heads</button>
+                  <button id="cfTails">Tails</button>
+                </div>
+              </div>
+              <div class="panel glass">
+                <h3>Crash</h3>
+                <div id="crashArea">
+                  <div id="crashMultiplier" class="mult">x1.00</div>
+                  <input id="crashBet" type="number" value="1000" min="100" step="100">
+                  <button id="crashBetBtn">Bet</button>
+                  <button id="cashOutBtn" disabled>Cash Out</button>
+                </div>
+              </div>
+              <div class="panel glass">
+                <h3>Jackpot Wheel</h3>
+                <canvas id="wheel" width="300" height="300"></canvas>
+                <input id="wheelBet" type="number" value="10000" min="100" step="100">
+                <button id="spinWheel">Spin</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Crates -->
+          <div id="crates" class="tab">
+            <div class="cards">
+              <div class="card glass">
+                <h3>Cases</h3>
+                <div id="casesList"></div>
+              </div>
+              <div class="card glass">
+                <h3>Inventory</h3>
+                <div id="caseInventory" class="inventory-grid"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Upgrades -->
+          <div id="upgrades" class="tab">
+            <div id="upgradesList" class="upgrades-grid"></div>
+          </div>
+
+          <!-- Inventory -->
+          <div id="inventory" class="tab">
+            <div id="inventoryList" class="inventory-grid"></div>
+          </div>
+
+          <!-- Leaderboards -->
+          <div id="leaderboards" class="tab">
+            <h2>Leaderboards</h2>
+            <ol id="leaderboardList"></ol>
+          </div>
+
+          <!-- Profile -->
+          <div id="profile" class="tab">
+            <h2>Profile</h2>
+            <label>Username <input id="usernameInput" placeholder="Player" /></label>
+            <label>Avatar <input id="avatarInput" type="file" accept="image/*" /></label>
+            <div id="avatarPreview" class="avatar-preview"></div>
+            <button id="saveProfile">Save</button>
+            <div class="redeem">
+              <h3>Redeem Code</h3>
+              <input id="redeemCode" placeholder="Enter code" /> <button id="redeemBtn">Redeem</button>
+            </div>
+          </div>
+
+          <!-- Settings -->
+          <div id="settings" class="tab">
+            <h2>Settings</h2>
+            <label><input id="toggleMusic" type="checkbox" checked /> Music</label>
+            <label><input id="toggleSounds" type="checkbox" checked /> Sounds</label>
+            <button id="resetGame" class="danger">Reset Save</button>
+          </div>
+
+          <!-- Stats -->
+          <div id="stats" class="tab">
+            <h2>Statistics</h2>
+            <div id="statsList"></div>
+          </div>
+        </section>
+
+        <div id="notifications" class="notifications"></div>
+      </main>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+  </body>
+  </html>
